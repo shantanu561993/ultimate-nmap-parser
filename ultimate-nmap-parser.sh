@@ -645,7 +645,7 @@ echo -e "\e[1m\e[93m[>]\e[0m Generating Filtered Ports Summary"
 
 rm "${outpath}$outputfilteredsummaryfile" > /dev/null 2>&1
 for host in $(cat "$inputfilepath" | grep "Host:" | grep "\/filtered\/" | awk '{ print $2}'| sort --unique); do # will go through each host
-    echo "ClosFiltereded Ports For Host: $host " >> "${outpath}$outputfilteredsummaryfile"
+    echo "Filtered Ports For Host: $host " >> "${outpath}$outputfilteredsummaryfile"
 	echo -n "	" >> "${outpath}$outputfilteredsummaryfile"
     for port in $(cat "$inputfilepath" | grep -w $host | grep -o -P '.{0,10}/filtered/' | awk '{ print $2}' | cut -d /  -f 1 | sort --unique); do # go through ports
 		echo -n $port", " >> "${outpath}$outputfilteredsummaryfile"
