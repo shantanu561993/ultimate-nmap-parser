@@ -123,6 +123,7 @@ echo "			|    |  | |  \ ___] |___ |  \                   "
 echo "			                                                "
 echo -e "\e[39m\e[0m\e[96mVersion: $version - $modified" 																				 
 echo -e "Created By: Shifty0g 	https://github.com/shifty0g  \e[39m"
+echo -e "Modified By: intruder 	https://redteam.cafe  \e[39m"
 echo ""
 }
 
