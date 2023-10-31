@@ -1,7 +1,7 @@
 #!/bin/bash
 fname="ultimate-nmap-parser.sh"
-version="0.8"
-modified="05/03/2020"
+version="0.9"
+modified="05/03/2023"
 
 # TO DO:
 # BUG: cant handle paths with spaces. so far the makcsv function doesnt appear to write to temp.csv
@@ -76,6 +76,7 @@ outhostsdir="hosts"
 outputcsvfile="parsed_nmap.csv"
 outputsummaryfile="summary.txt"
 outputclosedfile="closed-summary.txt"
+outputfilteredfile="filtered-summary.txt"
 outputipfile="parsed_ipport.txt"
 outputupfile="hosts_up.txt"
 outputdownfile="hosts_down.txt"
@@ -87,6 +88,7 @@ outputwebfile="web-urls.txt"
 outputsslfile="ssl.txt"
 outputreport1file="report1.txt"
 outputclosedsummaryfile="closed-summary.txt"
+outputfilteredsummaryfile="filtered-summary.txt"
 
 
 # Menu Switches
@@ -104,6 +106,7 @@ men_ssl="N"
 men_web="N"
 men_hostports="N"
 men_closed="N"
+men_filtered="N"
 men_report1="N"
 men_htmlreport="N"
 
@@ -150,6 +153,7 @@ echo "	--all		Runs ALL options - **EXCLUDING: report1, --html**"
 echo "	--csv		Create .csv file - $outputcsvfile"
 echo "	--summary	Create host Summary report - $outputsummaryfile"
 echo "	--closed	Create Summary of hosts with CLOSED ports - $outputclosedfile"
+echo "	--filtered	Create Summary of hosts with Filtered ports - $outputfilteredfile"
 echo "	--unique	Parse open unique TCP & UDP ports - $outputuniquefile"
 echo "	--tcp		Parse open TCP ports - $outputtcpfile"
 echo "	--udp		Parse open UDP ports - $outputudpfile"
@@ -198,7 +202,7 @@ function makecsv () {
 # this is the main function which processes the inputfile and creates a csv file 
 echo -e "\e[1m\e[93m[>]\e[0m Creating CSV File"
 while read line; do
-	checkport=$(echo $line | grep -e '/open/' -e '/closed')
+	checkport=$(echo $line | grep -e '/open/' -e '/closed' -e '/filtered')
 	if [ "$checkport" != "" ]; then
 		host=$(echo $line | awk '{print $2}')
 		lineports=$(echo $line | awk '{$1=$2=$3=$4=""; print $0}')
@@ -207,7 +211,7 @@ while read line; do
 		# Read the per-host temp file to write each open port as a line to the CSV temp file
 		while read templine; do
 		# check for open port
-		checkport2=$(echo $templine | grep -e '/open/' -e '/closed')
+		checkport2=$(echo $templine | grep -e '/open/' -e '/closed' -e '/filtered')
 		if [ "$checkport2" != "" ]; then
 			port=$(echo $templine | awk -F '/' '{print $1}')
 			status=$(echo $templine | awk -F '/' '{print $2}')
@@ -635,6 +639,26 @@ echo
 #end
 }
 
+function filteredsummary() {
+# creates a little report of hosts with filtered ports
+echo -e "\e[1m\e[93m[>]\e[0m Generating Filtered Ports Summary"
+
+rm "${outpath}$outputfilteredsummaryfile" > /dev/null 2>&1
+for host in $(cat "$inputfilepath" | grep "Host:" | grep "\/filtered\/" | awk '{ print $2}'| sort --unique); do # will go through each host
+    echo "ClosFiltereded Ports For Host: $host " >> "${outpath}$outputfilteredsummaryfile"
+	echo -n "	" >> "${outpath}$outputfilteredsummaryfile"
+    for port in $(cat "$inputfilepath" | grep -w $host | grep -o -P '.{0,10}/filtered/' | awk '{ print $2}' | cut -d /  -f 1 | sort --unique); do # go through ports
+		echo -n $port", " >> "${outpath}$outputfilteredsummaryfile"
+    done # end ports loop
+	echo -e "\n " >> "${outpath}$outputfilteredsummaryfile"
+done # end hosts loop
+
+echo "	- "$outputfilteredsummaryfile
+echo
+
+#end
+}
+
 function htmlreport () {
 # Experminetal and made just 
 # creates a .html report from each .xml file in current directory - ignored the gnmap file input 
@@ -705,6 +729,7 @@ then
 		if [ "$men_web" == "Y" ]; then cat "${outpath}$outputwebfile" 2> /dev/null; fi
 		if [ "$men_ssl" == "Y" ]; then cat "${outpath}$outputsslfile" 2> /dev/null; fi
 		if [ "$men_closed" == "Y" ]; then cat "${outpath}$outputclosedsummaryfile" 2> /dev/null; fi
+		if [ "$men_filtered" == "Y" ]; then cat "${outpath}$outputfilteredsummaryfile" 2> /dev/null; fi
 		if [ "$men_report1" == "Y" ]; then cat "${outpath}$outputreport1file" 2> /dev/null; fi
 		if [ "$men_hostports" == "Y" ]; then more "${hostportspath}"/*_*.txt 2> /dev/null; fi
 	fi
@@ -783,7 +808,11 @@ for word in $(echo $*); do
 	if [ $word == "--closed" ]; then
 		men_closed="Y"
 		switch+="$word"
-	fi		
+	fi	
+	if [ $word == "--filtered" ]; then
+		men_filtered="Y"
+		switch+="$word"
+	fi
 	if [ $word == "--report1" ]; then
 		men_report1="Y"
 		switch+="$word"
@@ -808,7 +837,7 @@ for word in $(echo $*); do
 		men_web="Y"
 		men_hostports="Y"
 		men_closed="Y"
-		
+		men_filtered="Y"
 		#exclude
 		men_report1="N"
 		men_htmlreport="N"
@@ -873,6 +902,7 @@ if [ "$men_web" == "Y" ]; then web; fi
 if [ "$men_ssl" == "Y" ]; then ssl; fi
 if [ "$men_hostports" == "Y" ]; then hostports; fi
 if [ "$men_closed" == "Y" ]; then closedsummary; fi
+if [ "$men_filtered" == "Y" ]; then filteredsummary; fi
 if [ "$men_report1" == "Y" ]; then report1; fi
 if [ "$men_htmlreport" == "Y" ]; then htmlreport; fi
 
